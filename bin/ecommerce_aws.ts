@@ -3,6 +3,7 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { ProductsAppStack } from '../lib/productsApp-stack';
 import { EcommerceApiStack } from '../lib/ecommerceApi-stack';
+import { ProductAppLayers } from '../lib/productsAppLayers';
 import * as dotenv from 'dotenv';
 
 const app = new cdk.App();
@@ -17,11 +18,16 @@ const tags = {
   cost: "ECommerce",
 }
 
+const productsAppLayersStack = new ProductAppLayers(app, "ProductsAppLayers",{
+    tags: tags,
+    env: env}
+
+)
 const productsAppStack = new ProductsAppStack(app, "ProductsApp", {
   tags: tags,
   env: env
 })
-
+productsAppStack.addDependency(productsAppLayersStack)
 
 const ecommerceApiStack = new EcommerceApiStack(app, "EcommerceApi", {
   productsFetchHandler: productsAppStack.productsFetchHandler,
