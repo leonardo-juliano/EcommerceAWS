@@ -19,6 +19,7 @@ export async function handler(event: APIGatewayProxyEvent,
         console.log("POST /products")
         const product = JSON.parse(event.body!) as Product
         const productCreated = await productRepository.create(product)
+
         return {
             statusCode: 201,
             body: JSON.stringify(productCreated)
@@ -61,6 +62,6 @@ export async function handler(event: APIGatewayProxyEvent,
 
     return {
         statusCode: 400,
-        body: "Bad request"
+        body: "Bad request admin"
     }
 }
