@@ -7,6 +7,7 @@ export interface Product {
     code: string;
     price: number;
     model: string;
+    productUrl: string;
 }
 
 export class ProductRepository {
@@ -71,12 +72,13 @@ export class ProductRepository {
             },
             ConditionExpression: 'attribute_exists(id)', // atributo para verificar se existe o id na tabela antes de tentar excluir
             ReturnValues: "UPDATED_NEW",
-            UpdateExpression: "set productName = :n, code = :c, price = :p, model = :m", //caso for alterar somente um campo da inteface 
+            UpdateExpression: "set productName = :n, code = :c, price = :p, model = :m, productUrl = :u", //caso for alterar somente um campo da inteface 
             ExpressionAttributeValues: {
                 ":n": product.productName,
                 ":c": product.code,
                 ":p": product.price,
-                ":m": product.model
+                ":m": product.model,
+                ":u": product.productUrl
             }
         }).promise()
         data.Attributes!.id = productId

@@ -50,7 +50,9 @@ export class ProductsAppStack extends cdk.Stack {
                 PRODUCTS_DDB: this.productsDdb.tableName
             },
             layers: [productsLayer],
-            runtime: lambda.Runtime.NODEJS_20_X
+            runtime: lambda.Runtime.NODEJS_20_X,
+            tracing: lambda.Tracing.ACTIVE // FAZER O MONITORAMENTO NO X-RAY
+
         })
         this.productsDdb.grantReadData(this.productsFetchHandler)
 
@@ -69,7 +71,9 @@ export class ProductsAppStack extends cdk.Stack {
                 PRODUCTS_DDB: this.productsDdb.tableName
             },
             runtime: lambda.Runtime.NODEJS_20_X,
-            layers: [productsLayer]
+            layers: [productsLayer],
+            tracing: lambda.Tracing.ACTIVE, // FAZER O MONITORAMENTO NO X-RAY
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0
         })
         this.productsDdb.grantWriteData(this.productsAdminHandler)
     }
