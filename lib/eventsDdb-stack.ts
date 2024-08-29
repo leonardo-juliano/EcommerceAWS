@@ -20,7 +20,7 @@ export class EventsDdb extends cdk.Stack {
                 name: "sk",
                 type: dynamodb.AttributeType.STRING
             },
-            timeToLiveAttribute: "ttl",
+            timeToLiveAttribute: "ttl", //tempo para remover 
             billingMode: dynamodb.BillingMode.PROVISIONED,
             readCapacity: 1,
             writeCapacity: 1

@@ -39,6 +39,10 @@ export class ProductsAppStack extends cdk.Stack {
         const productsLayerArn = ssm.StringParameter.valueForStringParameter(this, "ProductsLayerVersionArn")
         const productsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductsLayerVersionArn", productsLayerArn)
 
+        //Products Events Layer
+        const productEventsLayerArn = ssm.StringParameter.valueForStringParameter(this, "ProductEventsLayerVersionArn")
+        const productEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductEventsLayerVersionArn", productsLayerArn)
+
         const productsEventsHandler = new lambdaNodeJS.NodejsFunction(this,
             "ProductsEventsFunction", {
             functionName: "ProductsEventsFunction",
@@ -55,7 +59,9 @@ export class ProductsAppStack extends cdk.Stack {
             },
             runtime: lambda.Runtime.NODEJS_20_X,
             tracing: lambda.Tracing.ACTIVE, // FAZER O MONITORAMENTO NO X-RAY
-            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            layers: [productEventsLayer],
+
         })
         props.eventsDdb.grantWriteData(productsEventsHandler)
 
@@ -78,7 +84,7 @@ export class ProductsAppStack extends cdk.Stack {
             tracing: lambda.Tracing.ACTIVE // FAZER O MONITORAMENTO NO X-RAY
 
         })
-        this.productsDdb.grantReadData(this.productsFetchHandler)
+        this.productsDdb.grantReadData(this.productsFetchHandler) //Permite somente leitura na tabela
 
         this.productsAdminHandler = new lambdaNodeJS.NodejsFunction(this,
             "ProductsAdminFunction", {
@@ -96,11 +102,11 @@ export class ProductsAppStack extends cdk.Stack {
                 PRODUCTS_EVENTS_FUNCTION_NAME: productsEventsHandler.functionName
             },
             runtime: lambda.Runtime.NODEJS_20_X,
-            layers: [productsLayer],
+            layers: [productsLayer, productEventsLayer],
             tracing: lambda.Tracing.ACTIVE, // FAZER O MONITORAMENTO NO X-RAY
             insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0
         })
         this.productsDdb.grantWriteData(this.productsAdminHandler)
-        productsEventsHandler.grantInvoke(this.productsAdminHandler)
+        productsEventsHandler.grantInvoke(this.productsAdminHandler) //permite que a função de admin chame a função de eventos
     }
 }
