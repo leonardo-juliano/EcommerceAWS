@@ -3,7 +3,7 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { ProductsAppStack } from '../lib/productsApp-stack';
 import { ECommerceApiStack } from '../lib/ecommerceApi-stack';
-import { ProductAppLayers } from '../lib/productsAppLayers-stack';
+import { ProductsAppLayersStack } from '../lib/productsAppLayers-stack';
 import * as dotenv from 'dotenv';
 import { EventsDdb } from '../lib/eventsDdb-stack';
 
@@ -19,13 +19,13 @@ const tags = {
   cost: "ECommerce",
 }
 
-const productsAppLayersStack = new ProductAppLayers(app, "ProductsAppLayers", {
+const productsAppLayersStack = new ProductsAppLayersStack(app, "ProductsAppLayers", {
   tags: tags,
   env: env
 })
 
 //criando tabela de eventos
-const eventsDdbStack = new EventsDdb(app, "EventsDdb", {
+const eventsDdbStack = new EventsDdb(app, "EventsDdb", { //as tags ajudam a identificar o recurso no console da AWS
   tags: tags,
   env: env
 })
@@ -37,6 +37,8 @@ const productsAppStack = new ProductsAppStack(app, "ProductsApp", {
   env: env
 })
 productsAppStack.addDependency(productsAppLayersStack)
+productsAppStack.addDependency(eventsDdbStack)
+
 
 const ecommerceApiStack = new ECommerceApiStack(app, "EcommerceApi", {
   productsFetchHandler: productsAppStack.productsFetchHandler,

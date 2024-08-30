@@ -41,12 +41,12 @@ export class ProductsAppStack extends cdk.Stack {
 
         //Products Events Layer
         const productEventsLayerArn = ssm.StringParameter.valueForStringParameter(this, "ProductEventsLayerVersionArn")
-        const productEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductEventsLayerVersionArn", productsLayerArn)
+        const productEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductEventsLayerVersionArn", productEventsLayerArn)
 
-        const productsEventsHandler = new lambdaNodeJS.NodejsFunction(this,
+        const productEventsHandler = new lambdaNodeJS.NodejsFunction(this,
             "ProductsEventsFunction", {
             functionName: "ProductsEventsFunction",
-            entry: "lambda/products/ProductsEventsFunction.ts",
+            entry: "lambda/products/productEventsFunction.ts",
             handler: "handler",
             memorySize: 512,
             timeout: cdk.Duration.seconds(2),
@@ -57,13 +57,12 @@ export class ProductsAppStack extends cdk.Stack {
             environment: {
                 EVENTS_DDB: props.eventsDdb.tableName
             },
-            runtime: lambda.Runtime.NODEJS_20_X,
-            tracing: lambda.Tracing.ACTIVE, // FAZER O MONITORAMENTO NO X-RAY
-            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
             layers: [productEventsLayer],
-
+            tracing: lambda.Tracing.ACTIVE, //fazer monitoramento no X-Ray
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X
         })
-        props.eventsDdb.grantWriteData(productsEventsHandler)
+        props.eventsDdb.grantWriteData(productEventsHandler) //permite que a função de eventos escreva na tabela de eventos
 
         this.productsFetchHandler = new lambdaNodeJS.NodejsFunction(this,
             "ProductsFetchFunction", {
@@ -80,11 +79,11 @@ export class ProductsAppStack extends cdk.Stack {
                 PRODUCTS_DDB: this.productsDdb.tableName
             },
             layers: [productsLayer],
-            runtime: lambda.Runtime.NODEJS_20_X,
-            tracing: lambda.Tracing.ACTIVE // FAZER O MONITORAMENTO NO X-RAY
-
+            tracing: lambda.Tracing.ACTIVE,
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X
         })
-        this.productsDdb.grantReadData(this.productsFetchHandler) //Permite somente leitura na tabela
+        this.productsDdb.grantReadData(this.productsFetchHandler) //permite que a função de fetch leia a tabela de produtos
 
         this.productsAdminHandler = new lambdaNodeJS.NodejsFunction(this,
             "ProductsAdminFunction", {
@@ -99,14 +98,14 @@ export class ProductsAppStack extends cdk.Stack {
             },
             environment: {
                 PRODUCTS_DDB: this.productsDdb.tableName,
-                PRODUCTS_EVENTS_FUNCTION_NAME: productsEventsHandler.functionName
+                PRODUCT_EVENTS_FUNCTION_NAME: productEventsHandler.functionName
             },
-            runtime: lambda.Runtime.NODEJS_20_X,
             layers: [productsLayer, productEventsLayer],
-            tracing: lambda.Tracing.ACTIVE, // FAZER O MONITORAMENTO NO X-RAY
-            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0
+            tracing: lambda.Tracing.ACTIVE,
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X
         })
         this.productsDdb.grantWriteData(this.productsAdminHandler)
-        productsEventsHandler.grantInvoke(this.productsAdminHandler) //permite que a função de admin chame a função de eventos
+        productEventsHandler.grantInvoke(this.productsAdminHandler) //permite que a função de admin chame a função de eventos
     }
 }
