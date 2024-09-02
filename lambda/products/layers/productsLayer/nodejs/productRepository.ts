@@ -40,6 +40,25 @@ export class ProductRepository {
         }
     }
 
+    async getProductByIds(productIds: string[]): Promise<Product[]> {
+        const keys: {
+            id: string;
+        }[] = []
+        productIds.forEach((productId) => {
+            keys.push({
+                id: productId
+            })
+        })
+        const data = await this.ddbClient.batchGet( //metodo batchGet permite fazer muitas buscas fazendo a requisição no dynamodb somente uma vez, podendo buscar de outras tabelas tb
+{            RequestItems: {
+                [this.productsDdb]:{
+                    Keys: keys
+                }
+            }}
+        ).promise()
+        return data.Responses![this.productsDdb] as Product[]
+    }
+
     async create(product: Product): Promise<Product> {
         product.id = uuid()
         await this.ddbClient.put({

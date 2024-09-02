@@ -1,5 +1,5 @@
 import { DynamoDB } from "aws-sdk";
-import { ProductEvent } from "/opt/nodejs/producteEventsLayer";
+import { ProductEvent } from "/opt/nodejs/productEventsLayer";
 import { Context, Callback } from "aws-lambda";
 import * as AWSXRay from "aws-xray-sdk";
 import { timeStamp } from "console";
@@ -10,9 +10,6 @@ const eventsDdb = process.env.EVENTS_DDB! //variável de ambiente que vai ser us
 const ddbClient = new DynamoDB.DocumentClient() //cliente do DynamoDB
 
 export async function handler(event: ProductEvent, context: Context, callback: Callback): Promise<void> {
-
-    //TODO - TO BE REMOVED
-    console.log("Evento", event)
 
     console.log(`Lambda requestId: ${context.awsRequestId}`)
 

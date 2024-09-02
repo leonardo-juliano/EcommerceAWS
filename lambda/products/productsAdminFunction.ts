@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda
 import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 import { DynamoDB, Lambda } from "aws-sdk"
 import * as AWSRay from "aws-xray-sdk"
-import { ProductEvent, ProductEventType } from "/opt/nodejs/producteEventsLayer";
+import { ProductEvent, ProductEventType } from "/opt/nodejs/productEventsLayer";
 
 AWSRay.captureAWS(require("aws-sdk"))
 
