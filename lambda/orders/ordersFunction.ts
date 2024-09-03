@@ -42,7 +42,6 @@ export async function handler(event: APIGatewayProxyEvent, context: Context): Pr
         const orderId = event.queryStringParameters!.orderId
     }
 
-
     return {
         statusCode: 400,
         body: "Bad Request"
