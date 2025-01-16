@@ -46,8 +46,8 @@ export class OrdersAppStack extends cdk.Stack {
         const orderEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrderEventsLayerVersionArn", orderEventsLayerArn)
 
         //Order Events Repository Layer
-        const orderEventsRepositoryLayerArn = ssm.StringParameter.valueForStringParameter(this, "orderEventsRepositoryLayerArn")
-        const orderEventsRepositoryLayer = lambda.LayerVersion.fromLayerVersionArn(this, "orderEventsRepositoryLayerArn", orderEventsRepositoryLayerArn)
+        const orderEventsRepositoryLayerArn = ssm.StringParameter.valueForStringParameter(this, "OrderEventsRepositoryLayerVersionArn")
+        const orderEventsRepositoryLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrderEventsRepositoryLayerVersionArn", orderEventsRepositoryLayerArn)
 
         //Product Layer
         const productsLayerArn = ssm.StringParameter.valueForStringParameter(this, "ProductsLayerVersionArn")
@@ -108,7 +108,7 @@ export class OrdersAppStack extends cdk.Stack {
             actions: ["dynamodb:PutItem"],
             resources: [props.eventsDdb.tableArn],
             conditions: {
-                ['ForallValues:StringLike'] : {
+                ['ForallValues:StringLike']: {
                     'dynamodb:LeadingKeys': ['#order:_*']
                 }
             }

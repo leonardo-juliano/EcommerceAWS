@@ -4,22 +4,20 @@ import * as cdk from 'aws-cdk-lib';
 import { ProductsAppStack } from '../lib/productsApp-stack';
 import { ECommerceApiStack } from '../lib/ecommerceApi-stack';
 import { ProductsAppLayersStack } from '../lib/productsAppLayers-stack';
-import * as dotenv from 'dotenv';
-import { EventsDdb } from '../lib/eventsDdb-stack';
+import { EventsDdb } from '../lib/eventsDdb-stack'
 import { OrdersAppLayersStack } from '../lib/ordersAppLayers-stack';
 import { OrdersAppStack } from '../lib/ordersApp-stack';
 
 const app = new cdk.App();
-dotenv.config();
 
-//carrega as variaveis de ambiente conta e região
 const env: cdk.Environment = {
-  account: process.env.account,
-  region: process.env.region
+  account: "533266991950",
+  region: "us-east-1"
 }
 
 const tags = {
   cost: "ECommerce",
+  team: "SiecolaCode"
 }
 
 const productsAppLayersStack = new ProductsAppLayersStack(app, "ProductsAppLayers", {
@@ -27,13 +25,11 @@ const productsAppLayersStack = new ProductsAppLayersStack(app, "ProductsAppLayer
   env: env
 })
 
-//criando tabela de eventos
-const eventsDdbStack = new EventsDdb(app, "EventsDdb", { //as tags ajudam a identificar o recurso no console da AWS
+const eventsDdbStack = new EventsDdb(app, "EventsDdb", {
   tags: tags,
   env: env
 })
 
-//criando a stack da aplicação e associando a tabela de eventos
 const productsAppStack = new ProductsAppStack(app, "ProductsApp", {
   eventsDdb: eventsDdbStack.table,
   tags: tags,
@@ -55,13 +51,15 @@ const ordersAppStack = new OrdersAppStack(app, "OrdersApp", {
 })
 ordersAppStack.addDependency(productsAppStack)
 ordersAppStack.addDependency(ordersAppLayersStack)
+ordersAppStack.addDependency(eventsDdbStack)
 
-const ecommerceApiStack = new ECommerceApiStack(app, "EcommerceApi", {
+
+const eCommerceApiStack = new ECommerceApiStack(app, "ECommerceApi", {
   productsFetchHandler: productsAppStack.productsFetchHandler,
   productsAdminHandler: productsAppStack.productsAdminHandler,
   ordersHandler: ordersAppStack.ordersHandler,
   tags: tags,
   env: env
 })
-ecommerceApiStack.addDependency(productsAppStack)
-ecommerceApiStack.addDependency(ordersAppStack)
+eCommerceApiStack.addDependency(productsAppStack)
+eCommerceApiStack.addDependency(ordersAppStack)
