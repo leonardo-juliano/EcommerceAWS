@@ -1,0 +1,4 @@
+{
+    "awsCfnAutoTemplateGenerator.profile": "default",
+    "awsCfnAutoTemplateGenerator.region": "us-east-1"
+}

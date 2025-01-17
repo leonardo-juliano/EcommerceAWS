@@ -7,6 +7,7 @@ import * as sns from "aws-cdk-lib/aws-sns"
 import * as subs from "aws-cdk-lib/aws-sns-subscriptions"
 import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from 'constructs'
+import { EventType } from 'aws-cdk-lib/aws-s3';
 
 interface OrdersAppStackProps extends cdk.StackProps {
     productsDdb: dynamodb.Table,
@@ -108,11 +109,39 @@ export class OrdersAppStack extends cdk.Stack {
             actions: ["dynamodb:PutItem"],
             resources: [props.eventsDdb.tableArn],
             conditions: {
-                ['ForallValues:StringLike']: {
-                    'dynamodb:LeadingKeys': ['#order:_*']
+                'StringLike': {
+                    'dynamodb:LeadingKeys': ['#order:123', '#order:456']
                 }
             }
+
         })
         orderEventsHandler.addToRolePolicy(eventsDdbPolicy)
+
+
+        const billingHandler = new lambdaNodeJS.NodejsFunction(this, "BillingFunction", {
+            functionName: "BillingFunction",
+            entry: "lambda/orders/billingFunction.ts",
+            handler: "handler",
+            memorySize: 512,
+            timeout: cdk.Duration.seconds(5),
+            bundling: {
+                minify: true,
+                sourceMap: false
+            },
+            tracing: lambda.Tracing.ACTIVE,
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X
+        })
+        ordersTopic.addSubscription(new subs.LambdaSubscription(billingHandler, {
+            filterPolicy: {
+                eventType: sns.SubscriptionFilter.stringFilter({
+                    allowlist: ['ORDER_CREATED']
+                })
+            }
+        }))
+
+
     }
+
+
 }

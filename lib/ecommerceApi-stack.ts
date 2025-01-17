@@ -89,15 +89,15 @@ export class ECommerceApiStack extends cdk.Stack {
         })
 
         //POST /orders
-        const orderRequestValidator = new apigateway.RequestValidator(this,"OrderResquestValidator", {
-            restApi:api,
+        const orderRequestValidator = new apigateway.RequestValidator(this, "OrderResquestValidator", {
+            restApi: api,
             requestValidatorName: "order request validator",
             validateRequestBody: true
         })
 
         const orderModel = new apigateway.Model(this, "OrderModel", {
             modelName: "OrderModel",
-            restApi:api,
+            restApi: api,
             schema: {
                 type: apigateway.JsonSchemaType.OBJECT,
                 properties: {

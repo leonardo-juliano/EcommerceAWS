@@ -23,10 +23,15 @@
     "typescript": "~5.5.3"
   },
   "dependencies": {
+    "@aws-cdk/aws-dynamodb": "^1.204.0",
+    "@aws-cdk/aws-iam": "^1.204.0",
+    "@aws-cdk/aws-lambda": "^1.204.0",
+    "@aws-cdk/aws-sns": "^1.204.0",
+    "@aws-cdk/core": "^1.204.0",
     "@types/dotenv": "^8.2.0",
-    "aws-cdk-lib": "2.148.0",
+    "aws-cdk-lib": "^2.176.0",
     "aws-xray-sdk": "^3.9.0",
-    "constructs": "^10.0.0",
+    "constructs": "^10.4.2",
     "dotenv": "^16.4.5",
     "source-map-support": "^0.5.21"
   }

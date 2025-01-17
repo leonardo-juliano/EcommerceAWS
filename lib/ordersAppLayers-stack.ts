@@ -29,7 +29,7 @@ export class OrdersAppLayersStack extends cdk.Stack {
         })
         new ssm.StringParameter(this, 'OrdersApiLayerVersionArn', {
             parameterName: 'OrdersApiLayerVersionArn',
-            stringValue: ordersLayer.layerVersionArn
+            stringValue: ordersApiLayer.layerVersionArn
         })
 
         const orderEventsLayer = new lambda.LayerVersion(this, 'OrderEventsLayer', {
@@ -40,7 +40,7 @@ export class OrdersAppLayersStack extends cdk.Stack {
         })
         new ssm.StringParameter(this, 'OrderEventsLayerVersionArn', {
             parameterName: 'OrderEventsLayerVersionArn',
-            stringValue: ordersLayer.layerVersionArn
+            stringValue: orderEventsLayer.layerVersionArn
         })
 
         const orderEventsRepositoryLayer = new lambda.LayerVersion(this, 'OrderEventsRepositoryLayer', {

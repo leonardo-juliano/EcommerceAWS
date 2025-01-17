@@ -40,7 +40,7 @@ export class ProductRepository {
         }
     }
 
-    async getProductByIds(productIds: string[]): Promise<Product[]> {
+    async getProductsByIds(productIds: string[]): Promise<Product[]> {
         const keys: {
             id: string;
         }[] = []

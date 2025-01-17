@@ -63,24 +63,25 @@ export async function handler(event: APIGatewayProxyEvent, context: Context): Pr
             }
         }
     } else if (method === 'POST') {
-        console.log('POST /ORDERS');
+        console.log('POST /orders')
         const orderRequest = JSON.parse(event.body!) as OrderResquest
-        const products = await productRepository.getProductByIds(orderRequest.productIds)
+        const products = await productRepository.getProductsByIds(orderRequest.productIds)
         if (products.length === orderRequest.productIds.length) {
             const order = buildOrder(orderRequest, products)
             const orderCreated = await orderRepository.createOrder(order)
 
-            await sendOrderEvent(orderCreated, OrderEventType.CREATED, lambdaRequestId)
-            console.log(`Order created event sent - OrderId: ${orderCreated.sk}
-                - MessageId: ${orderCreated.sk}-${lambdaRequestId}`)
-
+            const eventResult = await sendOrderEvent(orderCreated, OrderEventType.CREATED, lambdaRequestId)
+            console.log(
+                `Order created event sent - OrderId: ${orderCreated.sk} 
+              - MessageId: ${eventResult.MessageId}`
+            )
             return {
                 statusCode: 201,
-                body: JSON.stringify(convertOrderToResponse(orderCreated))
+                body: JSON.stringify(convertToOrderResponse(orderCreated))
             }
         } else {
             return {
-                statusCode: 400,
+                statusCode: 404,
                 body: "Some product was not found"
             }
         }
@@ -138,7 +139,13 @@ function sendOrderEvent(order: Order, eventType: OrderEventType, lambdaRequestId
     }
     return snsClient.publish({
         TopicArn: orderEventsTopicArn,
-        Message: JSON.stringify(envelope)
+        Message: JSON.stringify(envelope),
+        MessageAttributes: {
+            eventType: {
+                DataType: 'String',
+                StringValue: eventType
+            }
+        }
     }).promise()
 }
 
@@ -196,4 +203,30 @@ function buildOrder(orderRequest: OrderResquest, products: Product[]): Order {
     }
 
     return order
+}
+
+function convertToOrderResponse(order: Order): OrderResponse {
+    const orderProducts: OrderProductResponse[] = []
+    order.products.forEach((product) => {
+        orderProducts.push({
+            code: product.code,
+            price: product.price
+        })
+    })
+    const orderResponse: OrderResponse = {
+        email: order.pk,
+        id: order.sk!,
+        createdAt: order.createdAt!,
+        products: orderProducts,
+        billing: {
+            payment: order.billing.payment as PaymentType,
+            totalPrice: order.billing.totalPrice
+        },
+        shipping: {
+            type: order.shipping.type as ShippingType,
+            carrier: order.shipping.carrier as CarrierType
+        }
+    }
+
+    return orderResponse
 }
