@@ -8,6 +8,8 @@ import * as subs from "aws-cdk-lib/aws-sns-subscriptions"
 import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from 'constructs'
 import { EventType } from 'aws-cdk-lib/aws-s3';
+import * as sqs from "aws-cdk-lib/aws-sqs"
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources"
 
 interface OrdersAppStackProps extends cdk.StackProps {
     productsDdb: dynamodb.Table,
@@ -140,8 +142,30 @@ export class OrdersAppStack extends cdk.Stack {
             }
         }))
 
+        //criação da fila
+        const orderEventsQueue = new sqs.Queue(this, "OrderEventsQueue", {
+            queueName: "order-events",
+            enforceSSL: false,
+            encryption: sqs.QueueEncryption.UNENCRYPTED,
+        })
+        ordersTopic.addSubscription(new subs.SqsSubscription(orderEventsQueue))
 
+        const orderEmailsHandler = new lambdaNodeJS.NodejsFunction(this, "OrderEmailsFunction", {
+            functionName: "OrdersFunction",
+            entry: "lambda/orders/orderEmailsFunction.ts",
+            handler: "handler",
+            memorySize: 512,
+            timeout: cdk.Duration.seconds(5),
+            bundling: {
+                minify: true,
+                sourceMap: false
+            },
+            layers: [ordersLayer],
+            tracing: lambda.Tracing.ACTIVE,
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X
+        })
+        orderEmailsHandler.addEventSource(new lambdaEventSources.SqsEventSource(orderEventsQueue)) //a fonte de eventos vai ser a fila 
+        orderEventsQueue.grantConsumeMessages(orderEmailsHandler)
     }
-
-
 }
