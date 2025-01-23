@@ -1,0 +1,118 @@
+{
+	"info": {
+		"_postman_id": "1d70539c-fa5c-4d25-8b0b-58d31d3a4659",
+		"name": "EcommerceAWS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "34067061"
+	},
+	"item": [
+		{
+			"name": "/products",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "jwt",
+					"jwt": {
+						"secret": "cwsMXDtuP447WZQ63nM4dWZ3RppyMl",
+						"algorithm": "HS256",
+						"isSecretBase64Encoded": false,
+						"payload": "{}",
+						"addTokenTo": "header",
+						"headerPrefix": "Bearer",
+						"queryParamKey": "token",
+						"header": "{}"
+					}
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://ufl28rvky1.execute-api.us-east-1.amazonaws.com/prod/products"
+			},
+			"response": []
+		},
+		{
+			"name": "/products/",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": {
+						"token": "28355b72e5d848d2a1a43612cc0f52b7"
+					}
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"productName\" : \"Product1\",\r\n    \"code\": \"COD9\",\r\n    \"price\": 90.5,\r\n    \"model\": \"Model9\",\r\n    \"productUrl\": \"leonardojuliano.com.br\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://ufl28rvky1.execute-api.us-east-1.amazonaws.com/prod/products/"
+			},
+			"response": []
+		},
+		{
+			"name": "/products/{id}",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": ""
+			},
+			"response": []
+		},
+		{
+			"name": "/products/{id}",
+			"request": {
+				"method": "PUT",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "/orders",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": "https://475x0oqwu6.execute-api.us-east-1.amazonaws.com/prod/orders"
+			},
+			"response": []
+		},
+		{
+			"name": "/orders",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"leonardojuliano16@gmail.com\",\r\n    \"productIds\" : [\"bddab91c-e27f-4623-a4c3-b7eb63c2cf3c\"],\r\n    \"payment\": \"CASH\",\r\n    \"shipping\": {\r\n        \"type\": \"URGENT\",\r\n        \"carrier\": \"FEDEX\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://475x0oqwu6.execute-api.us-east-1.amazonaws.com/prod/orders"
+			},
+			"response": []
+		}
+	]
+}
