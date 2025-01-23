@@ -142,16 +142,36 @@ export class OrdersAppStack extends cdk.Stack {
             }
         }))
 
+        //criação da DLQ, fila de contigencia para tratativas de exceções
+        const orderEventsDlq = new sqs.Queue(this, "OrderEventsDlq", {
+            queueName: "order-events-dlq",
+            enforceSSL: false,
+            encryption: sqs.QueueEncryption.UNENCRYPTED,
+            retentionPeriod: cdk.Duration.days(10)
+        }
+        )
+
         //criação da fila
         const orderEventsQueue = new sqs.Queue(this, "OrderEventsQueue", {
             queueName: "order-events",
             enforceSSL: false,
             encryption: sqs.QueueEncryption.UNENCRYPTED,
+            //configuração da fila de contigencia
+            deadLetterQueue: {
+                maxReceiveCount: 3, //numero de tentativas
+                queue: orderEventsDlq //fila de contigencia
+            }
         })
-        ordersTopic.addSubscription(new subs.SqsSubscription(orderEventsQueue))
+        ordersTopic.addSubscription(new subs.SqsSubscription(orderEventsQueue, {
+            filterPolicy: {
+                eventType: sns.SubscriptionFilter.stringFilter({
+                    allowlist: ['ORDER_CREATED']
+                })
+            }
+        }))
 
         const orderEmailsHandler = new lambdaNodeJS.NodejsFunction(this, "OrderEmailsFunction", {
-            functionName: "OrdersFunction",
+            functionName: "OrderEmailsFunction",
             entry: "lambda/orders/orderEmailsFunction.ts",
             handler: "handler",
             memorySize: 512,
@@ -165,7 +185,11 @@ export class OrdersAppStack extends cdk.Stack {
             insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
             runtime: lambda.Runtime.NODEJS_20_X
         })
-        orderEmailsHandler.addEventSource(new lambdaEventSources.SqsEventSource(orderEventsQueue)) //a fonte de eventos vai ser a fila 
+        orderEmailsHandler.addEventSource(new lambdaEventSources.SqsEventSource(orderEventsQueue, {
+            batchSize: 1,
+            enabled: true,
+            maxBatchingWindow: cdk.Duration.minutes(1)
+        })) //a fonte de eventos vai ser a fila 
         orderEventsQueue.grantConsumeMessages(orderEmailsHandler)
     }
 }
