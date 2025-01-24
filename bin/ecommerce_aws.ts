@@ -11,8 +11,8 @@ import { OrdersAppStack } from '../lib/ordersApp-stack';
 const app = new cdk.App();
 
 const env: cdk.Environment = {
-  account: "533266991950",
-  region: "us-east-1"
+  account: process.env.account,
+  region: process.env.region
 }
 
 const tags = {
