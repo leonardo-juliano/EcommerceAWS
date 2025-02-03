@@ -191,5 +191,11 @@ export class OrdersAppStack extends cdk.Stack {
             maxBatchingWindow: cdk.Duration.minutes(1)
         })) //a fonte de eventos vai ser a fila 
         orderEventsQueue.grantConsumeMessages(orderEmailsHandler)
+        const orderEmailSesPolicy = new iam.PolicyStatement({ 
+            effect: iam.Effect.ALLOW,
+            actions: ["ses:SendEmail", "ses:SendRawEmail"],
+            resources: ["a"]
+        })
+        orderEmailsHandler.addToRolePolicy(orderEmailSesPolicy)
     }
 }
