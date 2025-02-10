@@ -25,6 +25,7 @@ export class EventsDdb extends cdk.Stack {
             readCapacity: 1,
             writeCapacity: 1
         })
+        //adicionando um índice global
         this.table.addGlobalSecondaryIndex({
             indexName: "emailIndex",
             partitionKey: {
@@ -35,7 +36,7 @@ export class EventsDdb extends cdk.Stack {
                 name: "sk",
                 type: dynamodb.AttributeType.STRING
             }, 
-            projectionType: dynamodb.ProjectionType.ALL,
+            projectionType: dynamodb.ProjectionType.ALL, //depende do que você quer retornar na consulta
             nonKeyAttributes: ["info"],
         })
 

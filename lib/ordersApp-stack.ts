@@ -17,6 +17,8 @@ interface OrdersAppStackProps extends cdk.StackProps {
 }
 
 export class OrdersAppStack extends cdk.Stack {
+
+    //criação de variáveis para armazenar os handlers
     readonly ordersHandler: lambdaNodeJS.NodejsFunction
     readonly orderEventsFetchHandler: lambdaNodeJS.NodejsFunction
 
@@ -201,7 +203,8 @@ export class OrdersAppStack extends cdk.Stack {
         })
         orderEmailsHandler.addToRolePolicy(orderEmailSesPolicy)
 
-        this.orderEventsFetchHandler =new lambdaNodeJS.NodejsFunction(this, "OrderEventsFetchFunction", {
+        //criação de uma função para buscar os eventos de pedidos
+        this.orderEventsFetchHandler = new lambdaNodeJS.NodejsFunction(this, "OrderEventsFetchFunction", {
             functionName: "OrderEventsFetchFunction",
             entry: "lambda/orders/orderEventsFetchFunction.ts",
             handler: "handler",
@@ -210,6 +213,9 @@ export class OrdersAppStack extends cdk.Stack {
             bundling: {
                 minify: true,
                 sourceMap: false
+            },
+            enviroment: {
+                EVENTS_DDB: props.eventsDdb.tableName
             },
             layers: [orderEventsRepositoryLayer],
             tracing: lambda.Tracing.ACTIVE,

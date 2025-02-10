@@ -16,7 +16,7 @@ export interface OrderEventDdb {
 }
 
 
-export class OrderEventRepository { 
+export class OrderEventRepository {
     private ddbClient: DocumentClient
     private eventsDdb: string
 
@@ -30,5 +30,33 @@ export class OrderEventRepository {
             TableName: this.eventsDdb,
             Item: orderEvent
         }).promise()
+    }
+
+    async getOrderEventsByEmail(email: string) {
+        const data = await this.ddbClient.query({
+            TableName: this.eventsDdb,
+            IndexName: 'emailIndex',
+            // definindo que o email é a chave de partição e que a chave de ordenação começa com ORDER_
+            KeyConditionExpression: 'email = :email AND begins_with(sk, :prefix)', //sk começa com OrderEvent#
+            ExpressionAttributeValues: {
+                ':email': email,
+                ':prefix': 'ORDER_'
+            }
+        }).promise()
+        return data.Items as OrderEventDdb[] //como a tabela projetada contem os mesmo campos da pra se utilizar dele
+    }
+
+    async getOrderEventByEmailAndEventType(email: string, eventType: string) {
+        const data = await this.ddbClient.query({
+            TableName: this.eventsDdb,
+            IndexName: 'emailIndex',
+            // definindo que o email é a chave de partição e que a chave de ordenação começa com ORDER_
+            KeyConditionExpression: 'email = :email AND begins_with(sk, :prefix)', //sk começa com OrderEvent#
+            ExpressionAttributeValues: {
+                ':email': email,
+                ':prefix': eventType
+            }
+        }).promise()
+        return data.Items as OrderEventDdb[]
     }
 }
