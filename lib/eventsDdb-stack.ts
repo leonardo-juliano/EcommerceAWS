@@ -35,9 +35,8 @@ export class EventsDdb extends cdk.Stack {
             sortKey: {
                 name: "sk",
                 type: dynamodb.AttributeType.STRING
-            }, 
+            },
             projectionType: dynamodb.ProjectionType.ALL, //depende do que você quer retornar na consulta
-            nonKeyAttributes: ["info"],
         })
 
         // //configurando o auto scaling

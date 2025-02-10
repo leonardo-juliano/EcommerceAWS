@@ -33,6 +33,8 @@
     "aws-xray-sdk": "^3.9.0",
     "constructs": "^10.4.2",
     "dotenv": "^16.4.5",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.20.0-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.20.0-alpha.0"
   }
 }

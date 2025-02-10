@@ -214,7 +214,7 @@ export class OrdersAppStack extends cdk.Stack {
                 minify: true,
                 sourceMap: false
             },
-            enviroment: {
+            environment: {
                 EVENTS_DDB: props.eventsDdb.tableName
             },
             layers: [orderEventsRepositoryLayer],
