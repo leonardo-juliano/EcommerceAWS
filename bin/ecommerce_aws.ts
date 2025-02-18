@@ -7,7 +7,7 @@ import { ProductsAppLayersStack } from '../lib/productsAppLayers-stack';
 import { EventsDdb } from '../lib/eventsDdb-stack'
 import { OrdersAppLayersStack } from '../lib/ordersAppLayers-stack';
 import { OrdersAppStack } from '../lib/ordersApp-stack';
-import { InvoiceWSApiStack } from 'lib/invoiceWSApi-stack';
+import { InvoiceWSApiStack } from '../lib/invoiceWSApi-stack';
 import { InvoicesAppLayersStack } from "../lib/invoicesAppLayers-stack";
 
 const app = new cdk.App();
