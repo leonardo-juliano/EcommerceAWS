@@ -8,23 +8,35 @@ import * as s3 from "aws-cdk-lib/aws-s3"
 import * as iam from "aws-cdk-lib/aws-iam"
 import * as s3n from "aws-cdk-lib/aws-s3-notifications"
 import * as ssm from "aws-cdk-lib/aws-ssm"
+import * as sqs from "aws-cdk-lib/aws-sqs"
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources"
 import { Construct } from "constructs"
 
+
+interface InvoiceWSApiStackProps extends cdk.StackProps {
+    eventsDdb: dynamodb.Table
+}
 export class InvoiceWSApiStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props: InvoiceWSApiStackProps) {
         super(scope, id, props)
 
         //Invoice Transaction Layer
-        const invoiceTransactionLayerArn = ssm.StringParameter.valueForStringParameter(this, "InvoiceTransactionLayerVersionArn")
-        const invoiceTransactionLayer = lambda.LayerVersion.fromLayerVersionArn(this, "InvoiceTransactionLayer", invoiceTransactionLayerArn)
+        const invoiceTransactionLayerArn = ssm.StringParameter
+            .valueForStringParameter(this, "InvoiceTransactionLayerVersionArn")
+        const invoiceTransactionLayer = lambda.LayerVersion
+            .fromLayerVersionArn(this, "InvoiceTransactionLayer", invoiceTransactionLayerArn)
 
         //Invoice Layer 
-        const invoiceLayerArn = ssm.StringParameter.valueForStringParameter(this, "InvoiceRepositoryLayerVersionArn")
-        const invoiceLayer = lambda.LayerVersion.fromLayerVersionArn(this, "InvoiceRepositoryLayer", invoiceLayerArn)
+        const invoiceLayerArn = ssm.StringParameter
+            .valueForStringParameter(this, "InvoiceRepositoryLayerVersionArn")
+        const invoiceLayer = lambda.LayerVersion
+            .fromLayerVersionArn(this, "InvoiceRepositoryLayer", invoiceLayerArn)
 
         //Invoice WebSocket API layer
-        const invoiceWSConnectionLayerArn = ssm.StringParameter.valueForStringParameter(this, "InvoiceWSConnectionLayerVersionArn")
-        const invoiceWSConnectionLayer = lambda.LayerVersion.fromLayerVersionArn(this, "InvoiceWSConnectionLayer", invoiceWSConnectionLayerArn)
+        const invoiceWSConnectionLayerArn = ssm.StringParameter
+            .valueForStringParameter(this, "InvoiceWSConnectionLayerVersionArn")
+        const invoiceWSConnectionLayer = lambda.LayerVersion
+            .fromLayerVersionArn(this, "InvoiceWSConnectionLayer", invoiceWSConnectionLayerArn)
 
         //Criação da tabela Invoice
         const invoicesDdb = new dynamodb.Table(this, "InvoiceDdb", {
@@ -41,7 +53,8 @@ export class InvoiceWSApiStack extends cdk.Stack {
                 type: dynamodb.AttributeType.STRING
             },
             timeToLiveAttribute: "ttl",
-            removalPolicy: cdk.RemovalPolicy.DESTROY //remover a tabela quando o stack for destruído
+            removalPolicy: cdk.RemovalPolicy.DESTROY, //remover a tabela quando o stack for destruído
+            stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES //habilitar o stream para a tabela
         })
 
         //Invoce Bucket - criação do bucket 
@@ -92,17 +105,20 @@ export class InvoiceWSApiStack extends cdk.Stack {
         const webSocketApi = new apigatewayv2.WebSocketApi(this, "InvoiceWSApi", {
             apiName: "InvoiceWSApi",
             connectRouteOptions: {
-                integration: new apigatewayv2_integrations.WebSocketLambdaIntegration("ConnectionHandler", connectionHandler)
+                integration:
+                    new apigatewayv2_integrations.WebSocketLambdaIntegration("ConnectionHandler", connectionHandler)
             },
             disconnectRouteOptions: {
-                integration: new apigatewayv2_integrations.WebSocketLambdaIntegration("DisconnectionHandler", disconnectionHandler)
+                integration:
+                    new apigatewayv2_integrations.WebSocketLambdaIntegration("DisconnectionHandler", disconnectionHandler)
             }
         })
 
         const stage = "prod"
         const wsApiEndpoint = `${webSocketApi.apiEndpoint}/${stage}`
+        console.log(`------- entrouuuuu WebSocket API Endpoint: ${wsApiEndpoint}`)
         new apigatewayv2.WebSocketStage(this, "InvoiceWSApiStage", {
-            webSocketApi,
+            webSocketApi: webSocketApi,
             stageName: stage,
             autoDeploy: true
         })
@@ -227,5 +243,50 @@ export class InvoiceWSApiStack extends cdk.Stack {
         webSocketApi.addRoute('cancelImport', {
             integration: new apigatewayv2_integrations.WebSocketLambdaIntegration("CancelImportHandler", cancelImportHandler)
         })
+
+
+        const invoiceEventsHandler = new lambdaNodeJS.NodejsFunction(this, "InvoiceEventsFunction", {
+            functionName: "InvoiceEventsFunction",
+            entry: "lambda/invoices/invoiceEventsFunction.ts",
+            handler: "handler",
+            memorySize: 128,
+            timeout: cdk.Duration.seconds(2),
+            bundling: {
+                minify: true,
+                sourceMap: false
+            },
+            tracing: lambda.Tracing.ACTIVE,
+            insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+            runtime: lambda.Runtime.NODEJS_20_X,
+            environment: {
+                EVENTS_DDB: props.eventsDdb.tableName,
+                INVOICE_WSAPI_ENDPOINT: wsApiEndpoint
+            },
+            layers: [invoiceWSConnectionLayer]
+        })
+        const eventsDdbPolicy = new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: ["dynamodb:PutItem"],
+            resources: [props.eventsDdb.tableArn],
+            conditions: {
+                'StringLike': {
+                    'dynamodb:LeadingKeys': ['#invoice_*']
+                }
+            }
+
+        })
+        invoiceEventsHandler.addToRolePolicy(eventsDdbPolicy)
+
+        const invoiceEventsDlq = new sqs.Queue(this, "InvoiceEventsDlq", {
+            queueName: "invoice-events-dlq",
+        })
+
+        invoiceEventsHandler.addEventSource(new lambdaEventSources.DynamoEventSource(invoicesDdb, {
+            startingPosition: lambda.StartingPosition.TRIM_HORIZON, //Começa a ler partir do ultimo evento gerado
+            batchSize: 5,
+            bisectBatchOnError: true,
+            onFailure: new lambdaEventSources.SqsDlq(invoiceEventsDlq),
+            retryAttempts: 3
+        }))
     }
 }
