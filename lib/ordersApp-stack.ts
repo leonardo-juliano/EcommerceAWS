@@ -10,10 +10,15 @@ import { Construct } from 'constructs'
 import { EventType } from 'aws-cdk-lib/aws-s3';
 import * as sqs from "aws-cdk-lib/aws-sqs"
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources"
+import * as event from 'aws-cdk-lib/aws-events'
+import * as logs from "aws-cdk-lib/aws-logs"
+import * as cw from "aws-cdk-lib/aws-cloudwatch"
+import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions"
 
 interface OrdersAppStackProps extends cdk.StackProps {
     productsDdb: dynamodb.Table,
-    eventsDdb: dynamodb.Table
+    eventsDdb: dynamodb.Table,
+    auditBus: event.EventBus
 }
 
 export class OrdersAppStack extends cdk.Stack {
@@ -78,7 +83,8 @@ export class OrdersAppStack extends cdk.Stack {
             environment: {
                 PRODUCTS_DDB: props.productsDdb.tableName,
                 ORDERS_DDB: ordersDdb.tableName,
-                ORDER_EVENTS_TOPIC_ARN: ordersTopic.topicArn
+                ORDER_EVENTS_TOPIC_ARN: ordersTopic.topicArn,
+                AUDIT_BUS_NAME: props.auditBus.eventBusName
             },
             layers: [ordersLayer, productsLayer, ordersApiLayer, orderEventsLayer],
             tracing: lambda.Tracing.ACTIVE,
@@ -90,6 +96,31 @@ export class OrdersAppStack extends cdk.Stack {
         ordersDdb.grantReadWriteData(this.ordersHandler)
         props.productsDdb.grantReadData(this.ordersHandler)
         ordersTopic.grantPublish(this.ordersHandler)
+        props.auditBus.grantPutEventsTo(this.ordersHandler)
+
+        //criação de uma politica para o cloudwatch
+        //Metric
+        const productNotFoundMetricFilter =
+            this.ordersHandler.logGroup.addMetricFilter("ProductNotFoundMetricFilter", {
+                metricName: "OrderWithNonValidProduct",
+                metricNamespace: "ProductNotFound",
+                filterPattern: logs.FilterPattern.literal('Some product was not found')
+            }
+            )
+
+        //Alarm
+        const productNotFoundAlarm = productNotFoundMetricFilter.metric().with({
+            statistic: 'Sum',
+            period: cdk.Duration.minutes(2),
+        }).createAlarm(this, 'ProductNotFoundAlarm', {
+            alarmDescription: "Some product was not found while creating a new order",
+            evaluationPeriods: 1,
+            threshold: 2,
+            actionsEnabled: true,
+            comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        })
+
+        //Action
 
         const orderEventsHandler = new lambdaNodeJS.NodejsFunction(this, "OrderEventsFunction", {
             functionName: "OrderEventsFunction",
