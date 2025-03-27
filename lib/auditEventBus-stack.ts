@@ -4,6 +4,7 @@ import * as cdk from "aws-cdk-lib"
 import * as sqs from "aws-cdk-lib/aws-sqs"
 import * as events from "aws-cdk-lib/aws-events"
 import * as targets from "aws-cdk-lib/aws-events-targets"
+import * as cw from "aws-cdk-lib/aws-cloudwatch"
 
 import { Construct } from 'constructs'
 
@@ -121,5 +122,41 @@ export class AuditEventBusStack extends cdk.Stack {
             queueName: 'InvoiceImportTimeout'
         } )
         timeoutImportInvoiceRule.addTarget(new targets.SqsQueue(invoiceImportTimeoutQueue))
+
+
+        //Metric 
+        const numberOfMessageMetric = 
+            invoiceImportTimeoutQueue.metricApproximateNumberOfMessagesVisible({
+                period: cdk.Duration.minutes(2),
+                statistic: "Sum" //soma o numero de mensagens visiveis
+            })
+
+
+        //Alarm
+        numberOfMessageMetric.createAlarm(this, 'InvoiceImportTimeOutAlarm', {
+            alarmName: "InvoiceImportTimeOutAlarm",
+            actionsEnabled: false,
+            evaluationPeriods: 1,
+            threshold: 5,
+            comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        })
+
+
+        //metrica para pegar a mensagem mais antiga 
+        const ageOfMessageMetric = 
+        invoiceImportTimeoutQueue.metricApproximateNumberOfMessagesVisible({
+            period: cdk.Duration.minutes(2),
+            statistic: "Maximum", //soma o numero de mensagens visiveis
+            unit: cw.Unit.SECONDS
+        })
+
+        //quando uma mensagem ficar parada na fila + de 60seg dispara um alarme
+        ageOfMessageMetric.createAlarm(this, 'AgeOfMessageMetricInQueue', {
+            alarmName: "AgeOfMessageMetricInQueue",
+            actionsEnabled: false,
+            evaluationPeriods: 1,
+            threshold: 60,
+            comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        })
     }
 }

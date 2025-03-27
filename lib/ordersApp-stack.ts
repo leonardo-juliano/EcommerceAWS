@@ -14,6 +14,7 @@ import * as event from 'aws-cdk-lib/aws-events'
 import * as logs from "aws-cdk-lib/aws-logs"
 import * as cw from "aws-cdk-lib/aws-cloudwatch"
 import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions"
+import { write } from 'fs';
 
 interface OrdersAppStackProps extends cdk.StackProps {
     productsDdb: dynamodb.Table,
@@ -44,6 +45,20 @@ export class OrdersAppStack extends cdk.Stack {
             billingMode: dynamodb.BillingMode.PROVISIONED, //ATRIBUINDO O MODO DE COBRANÇA
             readCapacity: 1, //capacidade de leitura
             writeCapacity: 1 //capacidade de escrita 
+        })
+
+        const writeThottleEventsMetric = ordersDdb.metric('WriteThrottleEvents', {
+            period: cdk.Duration.minutes(2),
+            statistic: 'SampleCount', //contabiliza os eventos 
+            unit: cw.Unit.COUNT
+        })
+        writeThottleEventsMetric.createAlarm(this, 'WriteThrottleEventsAlarm', {
+            alarmName: "WriteThrottleEventsAlarm",
+            actionsEnabled: false,
+            evaluationPeriods: 1,
+            threshold: 10,
+            comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+            treatMissingData: cw.TreatMissingData.NOT_BREACHING //não considera como violação
         })
 
         //Orders Layer
@@ -121,6 +136,13 @@ export class OrdersAppStack extends cdk.Stack {
         })
 
         //Action
+        const orderAlarmsTopics = new sns.Topic(this, "OrderAlarmsTopic", {
+            displayName: "Order alarms topic",
+            topicName: "order-alarms"
+        })
+        orderAlarmsTopics.addSubscription(new subs.EmailSubscription("leonardojuliano16@gmail.com"))
+        productNotFoundAlarm.addAlarmAction(new cw_actions.SnsAction(orderAlarmsTopics))
+
 
         const orderEventsHandler = new lambdaNodeJS.NodejsFunction(this, "OrderEventsFunction", {
             functionName: "OrderEventsFunction",
