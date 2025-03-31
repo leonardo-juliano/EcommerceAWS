@@ -3,6 +3,8 @@ import * as lambdaNodeJS from "aws-cdk-lib/aws-lambda-nodejs"
 import * as apigateway from "aws-cdk-lib/aws-apigateway"
 import * as cwlogs from "aws-cdk-lib/aws-logs"
 import { Construct } from "constructs"
+import * as cognito from "aws-cdk-lib/aws-cognito"
+import * lambda from "aws-cdk-lib/aws-lambda"
 
 interface ECommerceApiStackProps extends cdk.StackProps {
     productsFetchHandler: lambdaNodeJS.NodejsFunction;
@@ -12,6 +14,10 @@ interface ECommerceApiStackProps extends cdk.StackProps {
 }
 
 export class ECommerceApiStack extends cdk.Stack {
+    private productsAuthorizer: apigateway.CognitoUserPoolsAuthorizer
+    private customerPool: cognito.CognitoUserPoolsAuthorizer
+    private adminPool: cognito.UserPool
+
 
     constructor(scope: Construct, id: string, props: ECommerceApiStackProps) {
         super(scope, id, props)
@@ -36,9 +42,73 @@ export class ECommerceApiStack extends cdk.Stack {
             }
         })
 
+        this.createCognitoAuth()
+
         this.createProductsService(props, api)
 
         this.createOrdersService(props, api)
+    }
+
+    private createCognitoAuth() {
+        //cognito customer UserPool
+
+        this.customerPool = new cognito.UserPool(this, "CustomerPool", {
+            userPoolName: "CustomerPool",
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+            selfSignUpEnabled: true,
+            autoVerify: {
+                email: true,
+                phone: false
+            },
+            userVerification: {
+                emailSubject: "Verify your email for the Ecommerce service!",
+                emailBody: "Thanks for signing up to Ecommerce service! Your verification code is {####}",
+                emailStyle: cognito.VerificationEmailStyle.CODE
+            },
+            signInAliases:{
+                username: false,
+                email: true
+            },
+            standardAttributes:{
+                email:{
+                    required: true,
+                    mutable: false
+                }
+            },
+            passwordPolicy: {
+                minLength: 8,
+                requireLowercase: true,
+                requireDigits: true,
+                requireSymbols: true,
+                requireUppercase: true,
+                tempPasswordValidity: cdk.Duration.days(3)
+            },
+            accountRecovery: cognito.AccountRecovery.EMAIL_ONLY
+        })
+
+        this.customerPool.addDomain("CustomerPoolDomain", {
+            cognitoDomain: {
+                domainPrefix: "pcs-customer-service"
+            }
+        })
+
+        const customerWebScope = new cognito.ResourceServerScope({
+            scopeName: "web",
+            scopeDescription: "Customer Web operation"
+        })
+
+        const customerMobileScope = new cognito.ResourceServerScope({
+            scopeName: "mobile",
+            scopeDescription: "Customer Mobile operation"
+        })
+
+        const customerResourceServer = this.customerPool.addResourceServer("CustomerResourceServer",{
+            identifier: "customer",
+            userPoolResourceServerName: "CustomerResourceServer",
+            scopes: [customerWebScope, customerMobileScope]
+
+        })
+
     }
 
     private createOrdersService(props: ECommerceApiStackProps, api: apigateway.RestApi) {
