@@ -23,8 +23,6 @@ const tags = {
   team: "SiecolaCode"
 }
 
-
-
 const productsAppLayersStack = new ProductsAppLayersStack(app, "ProductsAppLayers", {
   tags: tags,
   env: env

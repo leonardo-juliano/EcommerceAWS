@@ -41,7 +41,7 @@ export class InvoiceWSApiStack extends cdk.Stack {
             .fromLayerVersionArn(this, "InvoiceWSConnectionLayer", invoiceWSConnectionLayerArn)
 
         //Criação da tabela Invoice
-        const invoicesDdb = new dynamodb.Table(this, "InvoiceDdb", {
+        const invoicesDdb = new dynamodb.Table(this, "InvoicesDdb", {
             tableName: "invoices",
             billingMode: dynamodb.BillingMode.PROVISIONED,
             readCapacity: 1,
